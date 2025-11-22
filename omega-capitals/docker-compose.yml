@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: omega-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - POLYGON_RPC_URL=${POLYGON_RPC_URL}
+      - PUBLIC_KEY=${PUBLIC_KEY}
+      - PRIVATE_KEY=${PRIVATE_KEY}
+    volumes:
+      - ./backend:/app
+      - ./backend/abis:/app/abis
+    networks:
+      - omega-network
+    restart: unless-stopped
+
+  # Frontend Dashboard
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: omega-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - omega-network
+    restart: unless-stopped
+
+  # Telegram Bot
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    container_name: omega-bot
+    depends_on:
+      - backend
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - API_URL=http://backend:8000
+    volumes:
+      - ./bot:/app
+    networks:
+      - omega-network
+    restart: unless-stopped
+
+  # Hugging Face Gradio Interface
+  huggingface:
+    build:
+      context: ./huggingface
+      dockerfile: Dockerfile
+    container_name: omega-hf
+    ports:
+      - "7860:7860"
+    depends_on:
+      - backend
+    environment:
+      - API_URL=http://backend:8000
+    volumes:
+      - ./huggingface:/app
+    networks:
+      - omega-network
+    restart: unless-stopped
+
+networks:
+  omega-network:
+    driver: bridge
+
+volumes:
+  backend-data:
+  frontend-node-modules:
