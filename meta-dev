@@ -1,0 +1,390 @@
+#!/bin/bash
+###############################################################################
+# meta-dev - Unified MetaMask AI Development CLI
+#
+# Combines IA-MetaMask (autonomous signing) with MatVerse-Copilot (deployment)
+# into a single command for Web3 + AI development.
+#
+# Usage:
+#   meta-dev init              - Start IA-MetaMask API server
+#   meta-dev repo <name>       - Deploy repo to GitHub + HuggingFace + mint NFT
+#   meta-dev paper <file>      - Deploy paper to arXiv + Zenodo DOI + mint NFT
+#   meta-dev nft <file>        - Mint NFT on Polygon + OpenSea
+#   meta-dev status            - Show system status
+#   meta-dev stop              - Stop all services
+#
+# Author: MatVerse Hub
+# License: MIT
+###############################################################################
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Configuration
+IA_METAMASK_DIR="${HOME}/ia-metamask"
+DEPLOY_QUEUE="${HOME}/deploy-queue"
+PID_FILE="${HOME}/.meta-dev.pid"
+
+# Print colored message
+print_color() {
+  local color=$1
+  shift
+  echo -e "${color}$@${NC}"
+}
+
+# Print header
+print_header() {
+  echo ""
+  print_color "$CYAN" "╔════════════════════════════════════════════════════════════╗"
+  print_color "$CYAN" "║           🚀 meta-dev - MetaMask AI Development           ║"
+  print_color "$CYAN" "╚════════════════════════════════════════════════════════════╝"
+  echo ""
+}
+
+# Check if IA-MetaMask is installed
+check_ia_metamask() {
+  if [ ! -d "$IA_METAMASK_DIR" ]; then
+    print_color "$RED" "❌ IA-MetaMask not found at $IA_METAMASK_DIR"
+    print_color "$YELLOW" ""
+    print_color "$YELLOW" "Please install first:"
+    print_color "$YELLOW" "  cd ~ && git clone https://github.com/MatVerse-Hub/test.git"
+    print_color "$YELLOW" "  cd test/ia-metamask && npm install"
+    print_color "$YELLOW" "  cp .env.example .env"
+    print_color "$YELLOW" "  nano .env  # Add your PRIVATE_KEY"
+    echo ""
+    exit 1
+  fi
+}
+
+# Check if matverse-copilot is installed
+check_matverse_copilot() {
+  if ! command -v matverse-copilot &> /dev/null; then
+    print_color "$RED" "❌ matverse-copilot not found"
+    print_color "$YELLOW" ""
+    print_color "$YELLOW" "Please install first:"
+    print_color "$YELLOW" "  curl -fsSL https://raw.githubusercontent.com/MatVerse-Hub/test/main/matverse-copilot/install-quick.sh | bash"
+    echo ""
+    exit 1
+  fi
+}
+
+# Initialize IA-MetaMask API server
+cmd_init() {
+  print_header
+  check_ia_metamask
+
+  print_color "$CYAN" "🔧 Starting IA-MetaMask API Server..."
+  echo ""
+
+  # Check if already running
+  if [ -f "$PID_FILE" ]; then
+    local pid=$(cat "$PID_FILE")
+    if ps -p "$pid" > /dev/null 2>&1; then
+      print_color "$YELLOW" "⚠️  IA-MetaMask is already running (PID: $pid)"
+      echo ""
+      print_color "$YELLOW" "Use 'meta-dev stop' to stop it first"
+      echo ""
+      exit 1
+    fi
+  fi
+
+  # Start API server in background
+  cd "$IA_METAMASK_DIR"
+  nohup node api-server.js > "${HOME}/.meta-dev.log" 2>&1 &
+  local pid=$!
+  echo "$pid" > "$PID_FILE"
+
+  sleep 2
+
+  # Check if it started successfully
+  if ps -p "$pid" > /dev/null 2>&1; then
+    print_color "$GREEN" "✅ IA-MetaMask API Server started (PID: $pid)"
+    echo ""
+    print_color "$CYAN" "📍 API available at: http://localhost:3001"
+    print_color "$CYAN" "📋 Logs: tail -f ${HOME}/.meta-dev.log"
+    echo ""
+    print_color "$GREEN" "🚀 Ready! Now you can:"
+    print_color "$GREEN" "   meta-dev repo <name>    - Deploy repository"
+    print_color "$GREEN" "   meta-dev paper <file>   - Deploy paper"
+    print_color "$GREEN" "   meta-dev nft <file>     - Mint NFT"
+    echo ""
+  else
+    print_color "$RED" "❌ Failed to start IA-MetaMask"
+    print_color "$RED" "Check logs: cat ${HOME}/.meta-dev.log"
+    echo ""
+    exit 1
+  fi
+}
+
+# Deploy repository to GitHub + HuggingFace + mint NFT
+cmd_repo() {
+  local repo_name=$1
+
+  if [ -z "$repo_name" ]; then
+    print_color "$RED" "❌ Repository name required"
+    print_color "$YELLOW" "Usage: meta-dev repo <name>"
+    echo ""
+    exit 1
+  fi
+
+  print_header
+  check_matverse_copilot
+
+  print_color "$CYAN" "📦 Deploying repository: $repo_name"
+  echo ""
+
+  # Create deployment queue entry
+  mkdir -p "$DEPLOY_QUEUE"
+
+  # Copy current directory to queue
+  local timestamp=$(date +%Y%m%d_%H%M%S)
+  local queue_dir="${DEPLOY_QUEUE}/now_${repo_name}_repo_${timestamp}"
+
+  print_color "$CYAN" "📋 Preparing deployment..."
+  cp -r . "$queue_dir" 2>/dev/null || true
+
+  print_color "$GREEN" "✅ Queued for deployment"
+  print_color "$CYAN" "⏳ MatVerse-Copilot will process it shortly"
+  echo ""
+  print_color "$CYAN" "Expected results:"
+  print_color "$CYAN" "   1. GitHub repository pushed"
+  print_color "$CYAN" "   2. HuggingFace Space created"
+  print_color "$CYAN" "   3. NFT minted on Polygon"
+  print_color "$CYAN" "   4. Tweet posted with links"
+  echo ""
+  print_color "$YELLOW" "💡 Monitor: matverse-copilot logs -f"
+  echo ""
+}
+
+# Deploy paper to arXiv + Zenodo + mint NFT
+cmd_paper() {
+  local paper_file=$1
+
+  if [ -z "$paper_file" ]; then
+    print_color "$RED" "❌ Paper file required"
+    print_color "$YELLOW" "Usage: meta-dev paper <file.pdf>"
+    echo ""
+    exit 1
+  fi
+
+  if [ ! -f "$paper_file" ]; then
+    print_color "$RED" "❌ File not found: $paper_file"
+    echo ""
+    exit 1
+  fi
+
+  print_header
+  check_matverse_copilot
+
+  print_color "$CYAN" "📄 Deploying paper: $paper_file"
+  echo ""
+
+  # Create deployment queue entry
+  mkdir -p "$DEPLOY_QUEUE"
+
+  local basename=$(basename "$paper_file" .pdf)
+  cp "$paper_file" "${DEPLOY_QUEUE}/now_${basename}_paper.pdf"
+
+  print_color "$GREEN" "✅ Queued for deployment"
+  print_color "$CYAN" "⏳ MatVerse-Copilot will process it shortly"
+  echo ""
+  print_color "$CYAN" "Expected results:"
+  print_color "$CYAN" "   1. Paper uploaded to arXiv"
+  print_color "$CYAN" "   2. DOI generated via Zenodo"
+  print_color "$CYAN" "   3. NFT minted with paper hash"
+  print_color "$CYAN" "   4. Tweet posted with DOI link"
+  echo ""
+  print_color "$YELLOW" "💡 Monitor: matverse-copilot logs -f"
+  echo ""
+}
+
+# Mint NFT on Polygon
+cmd_nft() {
+  local nft_file=$1
+
+  if [ -z "$nft_file" ]; then
+    print_color "$RED" "❌ NFT file required"
+    print_color "$YELLOW" "Usage: meta-dev nft <file.png|jpg|gif>"
+    echo ""
+    exit 1
+  fi
+
+  if [ ! -f "$nft_file" ]; then
+    print_color "$RED" "❌ File not found: $nft_file"
+    echo ""
+    exit 1
+  fi
+
+  print_header
+  check_matverse_copilot
+
+  print_color "$CYAN" "🎨 Minting NFT: $nft_file"
+  echo ""
+
+  # Create deployment queue entry
+  mkdir -p "$DEPLOY_QUEUE"
+
+  local timestamp=$(date +%Y%m%d_%H%M%S)
+  local basename=$(basename "$nft_file")
+  local ext="${basename##*.}"
+  local name="${basename%.*}"
+
+  cp "$nft_file" "${DEPLOY_QUEUE}/now_${name}_nft_${timestamp}.${ext}"
+
+  print_color "$GREEN" "✅ Queued for minting"
+  print_color "$CYAN" "⏳ MatVerse-Copilot will mint it shortly"
+  echo ""
+  print_color "$CYAN" "Expected results:"
+  print_color "$CYAN" "   1. NFT minted on Polygon Amoy"
+  print_color "$CYAN" "   2. Listed on OpenSea testnet"
+  print_color "$CYAN" "   3. Tweet posted with OpenSea link"
+  echo ""
+  print_color "$CYAN" "🔍 View at: https://testnets.opensea.io/account"
+  echo ""
+  print_color "$YELLOW" "💡 Monitor: matverse-copilot logs -f"
+  echo ""
+}
+
+# Show system status
+cmd_status() {
+  print_header
+
+  # Check IA-MetaMask status
+  print_color "$CYAN" "🤖 IA-MetaMask API Server:"
+  if [ -f "$PID_FILE" ]; then
+    local pid=$(cat "$PID_FILE")
+    if ps -p "$pid" > /dev/null 2>&1; then
+      print_color "$GREEN" "   Status: RUNNING (PID: $pid)"
+
+      # Try to get API status
+      if command -v curl &> /dev/null; then
+        local api_response=$(curl -s http://localhost:3001/status 2>/dev/null || echo "")
+        if [ -n "$api_response" ]; then
+          print_color "$GREEN" "   API: Online at http://localhost:3001"
+        fi
+      fi
+    else
+      print_color "$RED" "   Status: STOPPED (stale PID file)"
+      rm -f "$PID_FILE"
+    fi
+  else
+    print_color "$YELLOW" "   Status: NOT RUNNING"
+    print_color "$YELLOW" "   Run: meta-dev init"
+  fi
+  echo ""
+
+  # Check MatVerse-Copilot status
+  print_color "$CYAN" "🚀 MatVerse-Copilot:"
+  if command -v matverse-copilot &> /dev/null; then
+    matverse-copilot status
+  else
+    print_color "$YELLOW" "   Status: NOT INSTALLED"
+    print_color "$YELLOW" "   Install: curl -fsSL https://raw.githubusercontent.com/MatVerse-Hub/test/main/matverse-copilot/install-quick.sh | bash"
+  fi
+  echo ""
+
+  # Check deploy queue
+  if [ -d "$DEPLOY_QUEUE" ]; then
+    local queue_count=$(ls -1 "$DEPLOY_QUEUE" 2>/dev/null | wc -l)
+    print_color "$CYAN" "📋 Deploy Queue:"
+    print_color "$CYAN" "   Path: $DEPLOY_QUEUE"
+    print_color "$CYAN" "   Pending: $queue_count files"
+    echo ""
+  fi
+}
+
+# Stop all services
+cmd_stop() {
+  print_header
+  print_color "$CYAN" "🛑 Stopping services..."
+  echo ""
+
+  # Stop IA-MetaMask
+  if [ -f "$PID_FILE" ]; then
+    local pid=$(cat "$PID_FILE")
+    if ps -p "$pid" > /dev/null 2>&1; then
+      kill "$pid"
+      rm -f "$PID_FILE"
+      print_color "$GREEN" "✅ IA-MetaMask stopped"
+    else
+      rm -f "$PID_FILE"
+      print_color "$YELLOW" "⚠️  IA-MetaMask was not running"
+    fi
+  else
+    print_color "$YELLOW" "⚠️  IA-MetaMask was not running"
+  fi
+
+  # Stop MatVerse-Copilot if running
+  if command -v matverse-copilot &> /dev/null; then
+    matverse-copilot stop 2>/dev/null || true
+  fi
+
+  echo ""
+  print_color "$GREEN" "✅ All services stopped"
+  echo ""
+}
+
+# Show help
+cmd_help() {
+  print_header
+  print_color "$CYAN" "Usage: meta-dev <command> [options]"
+  echo ""
+  print_color "$CYAN" "Commands:"
+  print_color "$GREEN" "  init                  Start IA-MetaMask API server"
+  print_color "$GREEN" "  repo <name>           Deploy repo to GitHub + HuggingFace + mint NFT"
+  print_color "$GREEN" "  paper <file.pdf>      Deploy paper to arXiv + Zenodo DOI + mint NFT"
+  print_color "$GREEN" "  nft <file>            Mint NFT on Polygon + OpenSea"
+  print_color "$GREEN" "  status                Show system status"
+  print_color "$GREEN" "  stop                  Stop all services"
+  print_color "$GREEN" "  help                  Show this help message"
+  echo ""
+  print_color "$CYAN" "Examples:"
+  print_color "$YELLOW" "  meta-dev init                      # Start API server"
+  print_color "$YELLOW" "  meta-dev repo symbios              # Deploy SymbiOS repo"
+  print_color "$YELLOW" "  meta-dev paper QFCT.pdf            # Deploy QFCT paper"
+  print_color "$YELLOW" "  meta-dev nft evidence-001.png      # Mint NFT"
+  print_color "$YELLOW" "  meta-dev status                    # Check status"
+  echo ""
+  print_color "$CYAN" "More info:"
+  print_color "$CYAN" "  https://github.com/MatVerse-Hub/test"
+  echo ""
+}
+
+# Main command dispatcher
+case "${1:-help}" in
+  init)
+    cmd_init
+    ;;
+  repo)
+    cmd_repo "$2"
+    ;;
+  paper)
+    cmd_paper "$2"
+    ;;
+  nft)
+    cmd_nft "$2"
+    ;;
+  status)
+    cmd_status
+    ;;
+  stop)
+    cmd_stop
+    ;;
+  help|--help|-h)
+    cmd_help
+    ;;
+  *)
+    print_color "$RED" "❌ Unknown command: $1"
+    echo ""
+    cmd_help
+    exit 1
+    ;;
+esac

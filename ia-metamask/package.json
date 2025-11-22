@@ -1,0 +1,30 @@
+{
+  "name": "ia-metamask",
+  "version": "1.0.0",
+  "description": "Autonomous MetaMask AI - Auto-sign commits, mint NFTs, deploy to web3",
+  "type": "module",
+  "main": "ia-metamask.js",
+  "scripts": {
+    "start": "node ia-metamask.js",
+    "api": "node api-server.js"
+  },
+  "keywords": [
+    "metamask",
+    "ai",
+    "web3",
+    "walletconnect",
+    "automation",
+    "nft",
+    "polygon"
+  ],
+  "author": "MatVerse Hub",
+  "license": "MIT",
+  "dependencies": {
+    "ethers": "^6.13.0",
+    "dotenv": "^16.4.5",
+    "@walletconnect/web3wallet": "^1.12.0",
+    "axios": "^1.7.2",
+    "express": "^4.19.2",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
