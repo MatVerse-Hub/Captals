@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   LineChart,
   Line,
@@ -11,7 +11,7 @@ import {
 } from 'recharts'
 import axios from 'axios'
 
-const MetricsChart: React.FC = () => {
+const MetricsChart = () => {
   const [data, setData] = useState<any[]>([])
   const [metric, setMetric] = useState<string>('tvl')
   const [period, setPeriod] = useState<string>('7d')

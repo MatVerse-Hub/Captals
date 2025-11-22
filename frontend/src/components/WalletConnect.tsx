@@ -6,7 +6,7 @@ interface WalletConnectProps {
   onDisconnect: () => void
 }
 
-const WalletConnect: React.FC<WalletConnectProps> = ({ onConnect, onDisconnect }) => {
+const WalletConnect = ({ onConnect, onDisconnect }: WalletConnectProps) => {
   const [address, setAddress] = useState<string | null>(null)
   const [balance, setBalance] = useState<string>('0')
   const [network, setNetwork] = useState<string>('')

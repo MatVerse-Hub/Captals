@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import MetricsChart from './MetricsChart'
 import LUAPayCheckout from './LUAPayCheckout'
 import axios from 'axios'
@@ -7,7 +7,7 @@ interface DashboardProps {
   address: string
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ address }) => {
+const Dashboard = ({ address }: DashboardProps) => {
   const [metrics, setMetrics] = useState<any>(null)
   const [funds, setFunds] = useState<any[]>([])
   const [loading, setLoading] = useState(true)

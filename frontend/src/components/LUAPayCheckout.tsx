@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { ethers } from 'ethers'
 import axios from 'axios'
 
@@ -9,7 +9,7 @@ interface LUAPayCheckoutProps {
   onSuccess: () => void
 }
 
-const LUAPayCheckout: React.FC<LUAPayCheckoutProps> = ({
+const LUAPayCheckout = ({
   fundAddress,
   fundName,
   minAmount,
