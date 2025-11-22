@@ -1,0 +1,8 @@
+include README.md
+include LICENSE
+include requirements.txt
+include .env.example
+include install-quick.sh
+recursive-include contracts *.sol *.json
+recursive-include scripts *
+recursive-include src *.py
