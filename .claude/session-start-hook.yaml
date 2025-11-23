@@ -1,0 +1,123 @@
+name: MatVerse Zero-Cost Bootstrap
+version: 1.0.0
+description: Inicializa ecossistema MatVerse completo em modo zero-cost
+
+steps:
+  - name: "🔍 Detectar ambiente"
+    run: |
+      echo "OS: $(uname -s)"
+      echo "Arch: $(uname -m)"
+      echo "PWD: $(pwd)"
+
+  - name: "📦 Instalar dependências core"
+    run: |
+      if command -v apt-get &> /dev/null; then
+        sudo apt-get update -qq
+        sudo apt-get install -y curl unzip docker.io python3-pip
+      elif command -v brew &> /dev/null; then
+        brew install curl unzip docker python3
+      fi
+
+  - name: "🧠 Inicializar Ollama + DeepSeek"
+    run: |
+      if ! command -v ollama &> /dev/null; then
+        curl -L https://github.com/jmorganca/ollama/releases/download/v0.3.0/ollama-linux-amd64 -o /tmp/ollama
+        sudo install -m 755 /tmp/ollama /usr/local/bin/ollama
+      fi
+      ollama serve &
+      sleep 5
+      ollama pull deepseek-coder:1.3b-q4_K_M
+      echo "✓ LLM local operacional (zero-cost)"
+
+  - name: "🐳 Subir Qdrant (vector store)"
+    run: |
+      docker rm -f qdrant 2>/dev/null || true
+      docker run -d --name qdrant \
+        -p 6333:6333 \
+        -v $(pwd)/qdrant:/qdrant/storage \
+        qdrant/qdrant
+      echo "✓ Qdrant online"
+
+  - name: "⛓️ Iniciar Anvil (blockchain 0-gwei)"
+    run: |
+      if ! command -v anvil &> /dev/null; then
+        curl -L https://foundry.paradigm.xyz | bash
+        source ~/.bashrc
+        foundryup install
+      fi
+      anvil --accounts 20 --gas-price 0 --gas-limit 30000000 &> anvil.log &
+      echo "✓ Blockchain local (gas 0)"
+
+  - name: "☁️ Montar TeraBox + GDrive"
+    run: |
+      # TeraBox via rclone
+      if ! command -v rclone &> /dev/null; then
+        curl https://rclone.org/install.sh | sudo bash
+      fi
+
+      mkdir -p ~/.config/rclone
+      cat > ~/.config/rclone/rclone.conf <<EOF
+      [terabox]
+      type = webdav
+      url = https://dav.terabox.com
+      vendor = other
+      user = ${TERABOX_USER}
+      pass = $(rclone obscure ${TERABOX_PASS})
+
+      [gdrive]
+      type = drive
+      scope = drive
+      token = ${GDRIVE_TOKEN}
+      EOF
+
+      mkdir -p /mnt/terabox /mnt/gdrive
+      rclone mount terabox: /mnt/terabox --daemon --vfs-cache-mode writes
+      rclone mount gdrive: /mnt/gdrive --daemon --vfs-cache-mode writes
+      echo "✓ Dual-Brain Storage montado"
+
+  - name: "👁️ Iniciar Dual-Brain Watcher"
+    run: |
+      pip3 install -q watchdog openai requests
+      python3 watcher/dual_brain_sync.py &> watcher.log &
+      echo "✓ Watcher monitorando TeraBox + GDrive"
+
+  - name: "🔐 Inicializar LUA-AutoHeal"
+    run: |
+      cd xi-lua
+      pip3 install -q -r requirements.txt
+      ./ξ-lua init
+      ./ξ-lua status
+      echo "✓ AutoHeal (8 camadas) ativo"
+
+  - name: "🤖 Ativar IA-MetaMask"
+    run: |
+      npm install -g @anthropic-ai/claude-code
+      node ia-metamask.js &> metamask.log &
+      echo "✓ IA-MetaMask aguardando QR"
+
+  - name: "💾 Build MatVerse-Zero HTML"
+    run: |
+      npm install
+      npm run build
+      echo "✓ Build completo"
+
+  - name: "📊 Dashboard de Status"
+    run: |
+      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      echo "🍒 MatVerse Zero-Cost - ONLINE"
+      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      echo "🧠 LLM: ollama (deepseek-coder)"
+      echo "💾 Vector: Qdrant (localhost:6333)"
+      echo "⛓️ Chain: Anvil (gas 0)"
+      echo "☁️ Storage: TeraBox + GDrive"
+      echo "🔐 Security: LUA-AutoHeal"
+      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      ./ξ-lua status
+      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+env:
+  - TERABOX_USER
+  - TERABOX_PASS
+  - GDRIVE_TOKEN
+  - OPENAI_KEY
+  - ANTHROPIC_KEY
