@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="MatVerseOS - Zero-Cost Web3 Operating System">
+    <title>MatVerseOS v1.0.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #151b2e;
+            --bg-tertiary: #1e2842;
+            --text-primary: #e0e6ff;
+            --text-secondary: #8b95c7;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --border: #2d3656;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Header/Top Bar */
+        .topbar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 60px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .logo-icon {
+            font-size: 1.5rem;
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            padding: 0.375rem 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: 0.5rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.inactive {
+            background: var(--text-secondary);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Layout */
+        .container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 1rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+        }
+
+        .nav-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .nav-icon {
+            font-size: 1.25rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .app-view {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .app-view.active {
+            display: flex;
+        }
+
+        .app-header {
+            margin-bottom: 2rem;
+        }
+
+        .app-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .app-description {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        /* Chat UI */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            gap: 1rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            max-width: 80%;
+        }
+
+        .message.user {
+            background: var(--accent);
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .message.assistant {
+            background: var(--bg-tertiary);
+            align-self: flex-start;
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 1rem;
+        }
+
+        input, textarea {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.875rem 1.25rem;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, textarea:focus {
+            border-color: var(--accent);
+        }
+
+        .chat-input {
+            flex: 1;
+            resize: none;
+            font-family: inherit;
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.875rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Vector Search */
+        .search-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .search-results {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .search-result {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .result-path {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-family: monospace;
+        }
+
+        .result-score {
+            background: var(--accent);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .result-content {
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-size: 0.875rem;
+        }
+
+        /* System Monitor */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .metric-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .metric-bar {
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 1rem;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .metric-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 1rem;
+            transition: width 0.3s;
+        }
+
+        /* Terminal */
+        .terminal {
+            background: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            height: 600px;
+            overflow-y: auto;
+            font-size: 0.875rem;
+        }
+
+        .terminal-line {
+            margin-bottom: 0.5rem;
+        }
+
+        .terminal-input {
+            background: transparent;
+            border: none;
+            color: #0f0;
+            font-family: inherit;
+            font-size: inherit;
+            width: 100%;
+            outline: none;
+        }
+
+        /* File Manager */
+        .file-tree {
+            background: var(--bg-secondary);
+            border-radius: 0.75rem;
+            padding: 1rem;
+        }
+
+        .file-item {
+            padding: 0.75rem;
+            margin-bottom: 0.25rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .file-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .file-icon {
+            width: 20px;
+        }
+
+        /* Blockchain Explorer */
+        .block-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .block-card {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+        }
+
+        .block-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .block-number {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .block-hash {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .block-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .detail-label {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+
+        .detail-value {
+            font-weight: 600;
+        }
+
+        /* Utilities */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--bg-tertiary);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border);
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="topbar">
+        <div class="logo">
+            <span class="logo-icon">🍒</span>
+            <span>MatVerseOS</span>
+            <span style="font-size: 0.75rem; color: var(--text-secondary)">v1.0.0</span>
+        </div>
+        <div class="status-indicators">
+            <div class="status-item">
+                <div class="status-dot" id="llm-status"></div>
+                <span>LLM</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot" id="vector-status"></div>
+                <span>Vector DB</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot" id="chain-status"></div>
+                <span>Blockchain</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="nav-item active" onclick="switchApp('chat')">
+                <span class="nav-icon">💬</span>
+                <span>LLM Chat</span>
+            </div>
+            <div class="nav-item" onclick="switchApp('search')">
+                <span class="nav-icon">🔍</span>
+                <span>Vector Search</span>
+            </div>
+            <div class="nav-item" onclick="switchApp('blockchain')">
+                <span class="nav-icon">⛓️</span>
+                <span>Blockchain</span>
+            </div>
+            <div class="nav-item" onclick="switchApp('files')">
+                <span class="nav-icon">📁</span>
+                <span>Files (Dual-Brain)</span>
+            </div>
+            <div class="nav-item" onclick="switchApp('terminal')">
+                <span class="nav-icon">💻</span>
+                <span>Terminal</span>
+            </div>
+            <div class="nav-item" onclick="switchApp('monitor')">
+                <span class="nav-icon">📊</span>
+                <span>System Monitor</span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- LLM Chat -->
+            <div class="app-view active" id="chat">
+                <div class="app-header">
+                    <h1 class="app-title">LLM Chat</h1>
+                    <p class="app-description">Chat with local LLM (Ollama) - Zero cost, fully private</p>
+                </div>
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="message assistant">
+                            <strong>MatVerseOS Assistant</strong><br>
+                            Hi! I'm running locally on your machine. Zero API costs, full privacy. Ask me anything!
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <textarea class="chat-input" id="chat-input" placeholder="Type your message..." rows="3"></textarea>
+                        <button onclick="sendMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vector Search -->
+            <div class="app-view" id="search">
+                <div class="app-header">
+                    <h1 class="app-title">Vector Search</h1>
+                    <p class="app-description">Search across TeraBox + Google Drive using embeddings</p>
+                </div>
+                <div class="search-container">
+                    <div class="search-box">
+                        <input type="text" id="search-query" placeholder="Search your files..." style="flex: 1;">
+                        <button onclick="searchVectors()">Search</button>
+                    </div>
+                    <div class="search-results" id="search-results">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🔍</div>
+                            <p>Enter a query to search your Dual-Brain storage</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Blockchain Explorer -->
+            <div class="app-view" id="blockchain">
+                <div class="app-header">
+                    <h1 class="app-title">Blockchain Explorer</h1>
+                    <p class="app-description">Local Anvil chain - Gas 0, unlimited testing</p>
+                </div>
+                <div class="block-list" id="block-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⛓️</div>
+                        <p>Connecting to Anvil...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File Manager -->
+            <div class="app-view" id="files">
+                <div class="app-header">
+                    <h1 class="app-title">Dual-Brain File Manager</h1>
+                    <p class="app-description">TeraBox + Google Drive unified view</p>
+                </div>
+                <div class="file-tree" id="file-tree">
+                    <div class="file-item">
+                        <span class="file-icon">📁</span>
+                        <span>TeraBox (1TB free)</span>
+                    </div>
+                    <div class="file-item">
+                        <span class="file-icon">📁</span>
+                        <span>Google Drive</span>
+                    </div>
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📁</div>
+                        <p>Mount your cloud drives to see files</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal -->
+            <div class="app-view" id="terminal">
+                <div class="app-header">
+                    <h1 class="app-title">Web Terminal</h1>
+                    <p class="app-description">Execute commands (simulated for web)</p>
+                </div>
+                <div class="terminal" id="terminal-output">
+                    <div class="terminal-line">MatVerseOS Web Terminal v1.0.0</div>
+                    <div class="terminal-line">Type 'help' for available commands</div>
+                    <div class="terminal-line"></div>
+                    <div class="terminal-line">
+                        <span style="color: #4f46e5;">user@matverse</span>:<span style="color: #0ea5e9;">~</span>$
+                        <input type="text" class="terminal-input" id="terminal-input" onkeypress="handleTerminalInput(event)">
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Monitor -->
+            <div class="app-view" id="monitor">
+                <div class="app-header">
+                    <h1 class="app-title">System Monitor</h1>
+                    <p class="app-description">Resource usage and service status</p>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-label">CPU Usage</span>
+                            <span class="metric-value" id="cpu-value">0%</span>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-fill" id="cpu-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-label">RAM Usage</span>
+                            <span class="metric-value" id="ram-value">0 GB</span>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-fill" id="ram-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-label">Storage</span>
+                            <span class="metric-value" id="storage-value">0 GB</span>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-fill" id="storage-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-label">Network</span>
+                            <span class="metric-value" id="network-value">0 KB/s</span>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-fill" id="network-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // App Switching
+        function switchApp(appName) {
+            document.querySelectorAll('.app-view').forEach(view => view.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+
+            document.getElementById(appName).classList.add('active');
+            event.target.closest('.nav-item').classList.add('active');
+        }
+
+        // LLM Chat
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const messages = document.getElementById('chat-messages');
+            const query = input.value.trim();
+
+            if (!query) return;
+
+            // Add user message
+            const userMsg = document.createElement('div');
+            userMsg.className = 'message user';
+            userMsg.textContent = query;
+            messages.appendChild(userMsg);
+            input.value = '';
+
+            // Add loading
+            const loadingMsg = document.createElement('div');
+            loadingMsg.className = 'message assistant';
+            loadingMsg.innerHTML = '<span class="loading"></span>';
+            messages.appendChild(loadingMsg);
+            messages.scrollTop = messages.scrollHeight;
+
+            // Call Ollama (if available)
+            try {
+                const response = await fetch('http://localhost:11434/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: 'deepseek-coder:1.3b-q4_K_M',
+                        prompt: query,
+                        stream: false
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    loadingMsg.innerHTML = `<strong>Assistant</strong><br>${data.response}`;
+                } else {
+                    throw new Error('Ollama not running');
+                }
+            } catch (error) {
+                loadingMsg.innerHTML = `<strong>Assistant</strong><br>⚠️ Ollama not running. Start it with: <code>ollama serve</code>`;
+            }
+
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // Vector Search
+        async function searchVectors() {
+            const query = document.getElementById('search-query').value;
+            const results = document.getElementById('search-results');
+
+            if (!query) return;
+
+            results.innerHTML = '<div class="empty-state"><span class="loading"></span></div>';
+
+            try {
+                const response = await fetch('http://localhost:6333/collections/dual_brain/points/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        vector: Array(1536).fill(0), // Simplified - use real embeddings
+                        limit: 5
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displaySearchResults(data.result || []);
+                } else {
+                    throw new Error('Qdrant not running');
+                }
+            } catch (error) {
+                results.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <p>Qdrant not running. Start with: <code>docker run -p 6333:6333 qdrant/qdrant</code></p>
+                    </div>
+                `;
+            }
+        }
+
+        function displaySearchResults(results) {
+            const container = document.getElementById('search-results');
+
+            if (results.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><p>No results found</p></div>';
+                return;
+            }
+
+            container.innerHTML = results.map(result => `
+                <div class="search-result">
+                    <div class="result-header">
+                        <span class="result-path">${result.payload?.path || 'Unknown'}</span>
+                        <span class="result-score">${(result.score * 100).toFixed(1)}%</span>
+                    </div>
+                    <div class="result-content">${result.payload?.content || 'No preview available'}</div>
+                </div>
+            `).join('');
+        }
+
+        // Terminal
+        function handleTerminalInput(event) {
+            if (event.key === 'Enter') {
+                const input = document.getElementById('terminal-input');
+                const output = document.getElementById('terminal-output');
+                const command = input.value.trim();
+
+                // Add command to output
+                const commandLine = document.createElement('div');
+                commandLine.className = 'terminal-line';
+                commandLine.innerHTML = `<span style="color: #4f46e5;">user@matverse</span>:<span style="color: #0ea5e9;">~</span>$ ${command}`;
+                output.insertBefore(commandLine, output.lastElementChild);
+
+                // Execute command (simulated)
+                const resultLine = document.createElement('div');
+                resultLine.className = 'terminal-line';
+
+                switch(command) {
+                    case 'help':
+                        resultLine.textContent = 'Available commands: help, status, ls, clear';
+                        break;
+                    case 'status':
+                        resultLine.innerHTML = `
+                            🧠 LLM: ${navigator.onLine ? 'Online' : 'Offline'}<br>
+                            💾 Vector DB: Checking...<br>
+                            ⛓️ Blockchain: Checking...
+                        `;
+                        break;
+                    case 'ls':
+                        resultLine.textContent = 'matverse.html  watcher/  xi-lua/  contracts/';
+                        break;
+                    case 'clear':
+                        output.innerHTML = `
+                            <div class="terminal-line">MatVerseOS Web Terminal v1.0.0</div>
+                            <div class="terminal-line"></div>
+                        `;
+                        break;
+                    default:
+                        resultLine.textContent = `Command not found: ${command}`;
+                }
+
+                if (command !== 'clear') {
+                    output.insertBefore(resultLine, output.lastElementChild);
+                }
+
+                input.value = '';
+                output.scrollTop = output.scrollHeight;
+            }
+        }
+
+        // System Monitor
+        function updateSystemMetrics() {
+            // Simulated metrics (replace with real APIs in production)
+            const cpu = Math.random() * 100;
+            const ram = Math.random() * 4;
+            const storage = Math.random() * 64;
+            const network = Math.random() * 1000;
+
+            document.getElementById('cpu-value').textContent = `${cpu.toFixed(1)}%`;
+            document.getElementById('cpu-bar').style.width = `${cpu}%`;
+
+            document.getElementById('ram-value').textContent = `${ram.toFixed(2)} GB`;
+            document.getElementById('ram-bar').style.width = `${(ram / 4) * 100}%`;
+
+            document.getElementById('storage-value').textContent = `${storage.toFixed(1)} GB`;
+            document.getElementById('storage-bar').style.width = `${(storage / 64) * 100}%`;
+
+            document.getElementById('network-value').textContent = `${network.toFixed(0)} KB/s`;
+            document.getElementById('network-bar').style.width = `${(network / 1000) * 100}%`;
+        }
+
+        // Service Status Check
+        async function checkServices() {
+            // Check Ollama
+            try {
+                await fetch('http://localhost:11434/api/version');
+                document.getElementById('llm-status').classList.remove('inactive');
+            } catch {
+                document.getElementById('llm-status').classList.add('inactive');
+            }
+
+            // Check Qdrant
+            try {
+                await fetch('http://localhost:6333/health');
+                document.getElementById('vector-status').classList.remove('inactive');
+            } catch {
+                document.getElementById('vector-status').classList.add('inactive');
+            }
+
+            // Check Anvil
+            try {
+                await fetch('http://localhost:8545', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_blockNumber', params: [], id: 1 })
+                });
+                document.getElementById('chain-status').classList.remove('inactive');
+            } catch {
+                document.getElementById('chain-status').classList.add('inactive');
+            }
+        }
+
+        // Initialize
+        setInterval(updateSystemMetrics, 2000);
+        setInterval(checkServices, 5000);
+        checkServices();
+        updateSystemMetrics();
+
+        // Add Enter key support for chat
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
