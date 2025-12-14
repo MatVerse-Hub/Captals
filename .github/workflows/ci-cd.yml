@@ -3,58 +3,93 @@ name: Omega Capitals CI/CD
 on:
   push:
     branches: [ main, develop, claude/* ]
+    tags:     [ 'v*.*.*' ]
   pull_request:
     branches: [ main, develop ]
+  workflow_dispatch:
 
 env:
   NODE_VERSION: '18'
   PYTHON_VERSION: '3.11'
+  CONTRACTS_DIR: contracts
+  BACKEND_DIR: backend
+  FRONTEND_DIR: frontend
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write        # para OIDC (push ghcr)
+  packages: write        # somente necessário na job docker
+  security-events: write # upload de SARIF (semgrep/trivy) se habilitado
 
 jobs:
-  # Smart Contract Testing
   contracts:
+    name: Smart Contracts
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detect contracts dir
+        id: has_dir
+        run: |
+          if [ -d "${{ env.CONTRACTS_DIR }}" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "present=false" >> "$GITHUB_OUTPUT"; fi
+
       - name: Setup Node.js
+        if: steps.has_dir.outputs.present == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: ${{ env.CONTRACTS_DIR }}/package-lock.json
 
-      - name: Install dependencies
+      - name: Install deps
+        if: steps.has_dir.outputs.present == 'true'
+        working-directory: ${{ env.CONTRACTS_DIR }}
         run: npm ci
 
-      - name: Compile contracts
+      - name: Compile
+        if: steps.has_dir.outputs.present == 'true'
+        working-directory: ${{ env.CONTRACTS_DIR }}
         run: npx hardhat compile
-        continue-on-error: true
 
-      - name: Run contract tests
+      - name: Test
+        if: steps.has_dir.outputs.present == 'true'
+        working-directory: ${{ env.CONTRACTS_DIR }}
         run: npx hardhat test
+
+      - name: Coverage
+        if: steps.has_dir.outputs.present == 'true'
+        working-directory: ${{ env.CONTRACTS_DIR }}
+        run: npx hardhat coverage || echo "coverage skipped"
         continue-on-error: true
 
-      - name: Generate coverage report
-        run: npx hardhat coverage || echo "Coverage generation skipped"
-        continue-on-error: true
+      - name: Upload coverage (contracts)
+        if: steps.has_dir.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: contracts-coverage
+          path: ${{ env.CONTRACTS_DIR }}/coverage
 
-  # Backend Testing
   backend:
+    name: Backend (API)
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     services:
       redis:
         image: redis:7-alpine
-        ports:
-          - 6379:6379
+        ports: [ '6379:6379' ]
       postgres:
         image: postgres:14-alpine
         env:
           POSTGRES_PASSWORD: testpass
           POSTGRES_DB: omega_test
-        ports:
-          - 5432:5432
+        ports: [ '5432:5432' ]
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -62,145 +97,241 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detect backend dir
+        id: has_dir
+        run: |
+          if [ -d "${{ env.BACKEND_DIR }}" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "present=false" >> "$GITHUB_OUTPUT"; fi
+
       - name: Setup Python
-        uses: actions/setup-python@v4
+        if: steps.has_dir.outputs.present == 'true'
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: ${{ env.BACKEND_DIR }}/requirements.txt
 
-      - name: Install dependencies
+      - name: Install deps
+        if: steps.has_dir.outputs.present == 'true'
+        working-directory: ${{ env.BACKEND_DIR }}
         run: |
-          cd backend
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio
 
-      - name: Run tests
+      - name: Run tests (pytest + coverage)
+        if: steps.has_dir.outputs.present == 'true'
         env:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           POSTGRES_URL: postgresql://postgres:testpass@localhost/omega_test
           POLYGON_RPC: https://rpc.ankr.com/polygon_amoy
+        working-directory: ${{ env.BACKEND_DIR }}
         run: |
-          cd backend
-          pytest test_main.py -v --tb=short || echo "Tests completed with failures"
-        continue-on-error: true
+          pytest -q --cov=. --cov-report=xml --cov-report=term
 
-  # Frontend Testing
+      - name: Upload coverage (backend)
+        if: steps.has_dir.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: ${{ env.BACKEND_DIR }}/coverage.xml
+
   frontend:
+    name: Frontend (Web)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detect frontend dir
+        id: has_dir
+        run: |
+          if [ -d "${{ env.FRONTEND_DIR }}" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "present=false" >> "$GITHUB_OUTPUT"; fi
+
       - name: Setup Node.js
+        if: steps.has_dir.outputs.present == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
 
-      - name: Install dependencies
-        run: |
-          cd frontend
-          npm ci
+      - name: Install deps
+        if: steps.has_dir.outputs.present == 'true'
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm ci
 
-      - name: Run linter
-        run: |
-          cd frontend
-          npm run lint || echo "Linting completed with warnings"
+      - name: Lint
+        if: steps.has_dir.outputs.present == 'true'
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm run lint || echo "lint warnings"
         continue-on-error: true
 
       - name: Build
-        run: |
-          cd frontend
-          npm run build
+        if: steps.has_dir.outputs.present == 'true'
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm run build
 
       - name: Upload build artifacts
+        if: steps.has_dir.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: frontend/dist
-        continue-on-error: true
+          path: ${{ env.FRONTEND_DIR }}/dist
 
-  # Security Scan
   security:
+    name: Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run Trivy vulnerability scanner
+      - name: Trivy FS scan
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'table'
+          output: trivy.txt
           exit-code: '0'
         continue-on-error: true
 
-  # Docker Build
+      - name: SBOM (CycloneDX)
+        uses: anchore/sbom-action@v0
+        with:
+          format: cyclonedx
+          output-file: sbom.cyclonedx.json
+
+      - name: Semgrep (optional)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/ci
+        continue-on-error: true
+
+      - name: Gitleaks (optional)
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: detect --no-git -v --redact --report-format json --report-path gitleaks.json
+        continue-on-error: true
+
+      - name: Upload security artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            trivy.txt
+            sbom.cyclonedx.json
+            gitleaks.json
+
   docker:
+    name: Docker Build (ghcr)
     runs-on: ubuntu-latest
     needs: [backend, frontend]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
+      - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build backend image
+      - name: Login ghcr (OIDC not needed for public pull, needed for push)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta (tags/labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}/backend
+            ghcr.io/${{ github.repository }}/frontend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
+
+      - name: Build & push backend
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
-          push: false
-          tags: omega-capitals/backend:latest
+          context: ./${{ env.BACKEND_DIR }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build frontend image
+      - name: Build & push frontend
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend
-          push: false
-          tags: omega-capitals/frontend:latest
+          context: ./${{ env.FRONTEND_DIR }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Deploy to Hugging Face Spaces
   deploy-hf:
+    name: Deploy to Hugging Face Spaces
     runs-on: ubuntu-latest
-    needs: [backend, frontend, contracts]
-    if: github.ref == 'refs/heads/main'
+    needs: [contracts, backend, frontend]
+    if: github.ref == 'refs/heads/main' && secrets.HF_TOKEN != ''
     steps:
       - uses: actions/checkout@v4
 
-      - name: Push to Hugging Face Spaces
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      - name: Configure git
         run: |
           git config --global user.email "ci@omega-capitals.com"
           git config --global user.name "Omega CI/CD"
 
-          # Clone HF Spaces repo
+      - name: Clone HF space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
           git clone https://huggingface.co/spaces/omega-capitals/dashboard hf-space
 
-          # Copy app files
-          cp huggingface/app.py hf-space/app.py
-          cp huggingface/requirements.txt hf-space/requirements.txt
+      - name: Sync app files
+        run: |
+          cp -f huggingface/app.py hf-space/app.py
+          cp -f huggingface/requirements.txt hf-space/requirements.txt
 
-          # Commit and push
+      - name: Commit & push
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
           cd hf-space
           git add .
-          git commit -m "Deploy from GitHub Actions" || echo "No changes to commit"
+          git commit -m "Deploy from GitHub Actions" || echo "No changes"
           git push https://oauth2:${HF_TOKEN}@huggingface.co/spaces/omega-capitals/dashboard main
 
-  # Notify on Discord
   notify:
+    name: Notify
     runs-on: ubuntu-latest
     needs: [contracts, backend, frontend, security]
     if: always()
     steps:
-      - name: Notify completion
+      - name: Job summary
         run: |
-          echo "CI/CD pipeline completed"
-          echo "Status: ${{ job.status }}"
+          echo "## Omega CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Contracts: ${{ needs.contracts.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend:   ${{ needs.backend.result }}"   >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend:  ${{ needs.frontend.result }}"  >> $GITHUB_STEP_SUMMARY
+          echo "- Security:  ${{ needs.security.result }}"  >> $GITHUB_STEP_SUMMARY
+      - name: Discord (optional)
+        if: secrets.DISCORD_WEBHOOK != ''
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          title: "Omega CI/CD"
+          description: "contracts=${{ needs.contracts.result }} | backend=${{ needs.backend.result }} | frontend=${{ needs.frontend.result }} | security=${{ needs.security.result }}"
+          status: ${{ job.status }}
