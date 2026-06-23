@@ -1,0 +1,25 @@
+name: Instrumented State Machine Rust Tests
+
+on:
+  pull_request:
+    paths:
+      - 'captals/instrumented-state-machine-rust/**'
+      - '.github/workflows/instrumented-state-machine-tests.yml'
+  push:
+    paths:
+      - 'captals/instrumented-state-machine-rust/**'
+      - '.github/workflows/instrumented-state-machine-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: captals/instrumented-state-machine-rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --all-targets
