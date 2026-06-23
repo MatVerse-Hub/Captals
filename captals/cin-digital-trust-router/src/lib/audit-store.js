@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { assertSafeAuditPayload } from './log-sanitizer.js';
+import { assertCallerDoesNotSetHashes, assertLedgerFields } from './ledger-policy.js';
 
 const GENESIS = '0'.repeat(64);
 
@@ -23,31 +24,30 @@ export class AuditStore {
     return crypto.createHash('sha256').update(canon(value), 'utf8').digest('hex');
   }
 
-  async head() {
-    try {
-      const text = await fs.readFile(this.ledgerPath, 'utf8');
-      const line = text.split('\n').map((item) => item.trim()).filter(Boolean).at(-1);
-      return line ? JSON.parse(line).event_hash : GENESIS;
-    } catch (error) {
-      if (error?.code === 'ENOENT') return GENESIS;
-      throw error;
-    }
-  }
-
   async append(event) {
     const work = this.serial.then(async () => {
+      assertCallerDoesNotSetHashes(event);
+      assertLedgerFields(event);
       assertSafeAuditPayload(event);
       await fs.mkdir(path.dirname(this.ledgerPath), { recursive: true, mode: 0o700 });
-      const previous_event_hash = await this.head();
+
+      const integrity = await this.verify();
+      if (!integrity.valid) throw new Error('LEDGER_INTEGRITY_INVALID');
+
       const payload = {
         ...event,
         schema_version: 'audit-event.v1',
         created_at: new Date().toISOString(),
-        previous_event_hash
+        previous_event_hash: integrity.head
       };
+      assertLedgerFields(payload);
+      assertSafeAuditPayload(payload);
+
       const event_hash = this.digest(payload);
       const record = { ...payload, event_hash };
+      assertLedgerFields(record);
       assertSafeAuditPayload(record);
+
       const file = await fs.open(this.ledgerPath, 'a', 0o600);
       try {
         await file.writeFile(`${JSON.stringify(record)}\n`, 'utf8');
@@ -55,7 +55,7 @@ export class AuditStore {
       } finally {
         await file.close();
       }
-      return { recorded: true, previous_event_hash, event_hash };
+      return { recorded: true, previous_event_hash: integrity.head, event_hash };
     });
     this.serial = work.catch(() => undefined);
     return work;
@@ -69,16 +69,23 @@ export class AuditStore {
       if (error?.code === 'ENOENT') return { valid: true, records: 0, head: GENESIS };
       throw error;
     }
+
     let previous = GENESIS;
     let records = 0;
     for (const line of text.split('\n').map((item) => item.trim()).filter(Boolean)) {
-      const record = JSON.parse(line);
-      const { event_hash, ...payload } = record;
-      if (payload.previous_event_hash !== previous || this.digest(payload) !== event_hash) {
-        return { valid: false, records, head: previous };
+      try {
+        const record = JSON.parse(line);
+        assertLedgerFields(record);
+        assertSafeAuditPayload(record);
+        const { event_hash, ...payload } = record;
+        if (!/^[a-f0-9]{64}$/.test(event_hash || '')) return { valid: false, records, head: previous, reason: 'EVENT_HASH_INVALID' };
+        if (payload.previous_event_hash !== previous) return { valid: false, records, head: previous, reason: 'CHAIN_LINK_MISMATCH' };
+        if (this.digest(payload) !== event_hash) return { valid: false, records, head: previous, reason: 'EVENT_HASH_MISMATCH' };
+        previous = event_hash;
+        records += 1;
+      } catch (error) {
+        return { valid: false, records, head: previous, reason: error.message };
       }
-      previous = event_hash;
-      records += 1;
     }
     return { valid: true, records, head: previous };
   }
