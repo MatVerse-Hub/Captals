@@ -1,0 +1,21 @@
+title: TrustResponse
+required:
+  - status
+  - gate
+  - reason
+  - issuer
+  - verification
+  - audit
+fields:
+  status:
+    enum: [VALID, INVALID, EXPIRED, REVOKED, UNVERIFIED]
+  gate:
+    enum: [PASS, HOLD, BLOCK, ESCALATE]
+  reason:
+    type: string
+  issuer:
+    required: [country, state_code, agency_id]
+  verification:
+    required: [proof_reference_accepted, issuer_trusted, signature_valid, source]
+  audit:
+    required: [audit_id, transaction_id, audit_token_hash, previous_event_hash, recorded, event_hash]
