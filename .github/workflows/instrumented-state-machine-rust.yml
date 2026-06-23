@@ -1,0 +1,24 @@
+name: Instrumented State Machine Rust
+
+on:
+  pull_request:
+    paths:
+      - 'captals/instrumented-state-machine-rust/**'
+  push:
+    paths:
+      - 'captals/instrumented-state-machine-rust/**'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: captals/instrumented-state-machine-rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo fmt --check
+      - run: cargo test --all-targets
