@@ -323,7 +323,7 @@ where
             transition_id = transition_event.transition_id,
             state = ?transition_event.state,
             duration_ms = saturating_u64(transition_event.duration_ms),
-            status,
+            status = status,
             "sampled state transition"
         );
     } else {
@@ -333,7 +333,7 @@ where
             transition_id = transition_event.transition_id,
             state = ?transition_event.state,
             duration_ms = saturating_u64(transition_event.duration_ms),
-            status,
+            status = status,
             "sampled state transition"
         );
     }
@@ -356,8 +356,8 @@ where
         target: "instrumented_state_machine.batch",
         Level::INFO,
         batch_size = batch.len() as u64,
-        success_count,
-        error_count,
+        success_count = success_count,
+        error_count = error_count,
         max_duration_ms = saturating_u64(max_duration_ms),
         last_state = ?last.state,
         "instrumented state transition batch"
