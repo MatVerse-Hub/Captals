@@ -1,12 +1,12 @@
 {
   "name": "captals-cin-digital-trust-router",
   "version": "1.0.0",
-  "description": "Captals trust primitive for CIN digital verification without storing CPF.",
+  "description": "Captals trust primitive for digital trust evaluation with opaque proof references.",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "check": "node --check src/index.js && node --check src/lib/session-manager.js && node --check src/lib/trust-engine.js && node --check src/lib/log-sanitizer.js && node --check src/lib/audit-store.js && node --check scripts/verify-ledger.js",
+    "check": "node --check src/index.js && node --check src/lib/session-manager.js && node --check src/lib/trust-engine.js && node --check src/lib/log-sanitizer.js && node --check src/lib/ledger-policy.js && node --check src/lib/audit-store.js && node --check scripts/verify-ledger.js",
     "test": "node --test",
     "verify:ledger": "node scripts/verify-ledger.js"
   },
