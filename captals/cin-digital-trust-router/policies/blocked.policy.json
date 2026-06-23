@@ -1,0 +1,22 @@
+{
+  "policy": "cin-digital-trust-router.blocked.v1",
+  "blocked_operations": [
+    "official_identity_document_issuance",
+    "state_document_simulation",
+    "official_qr_artifact_creation",
+    "institutional_signature_forgery",
+    "unauthorized_authentication_circumvention",
+    "unauthorized_biometric_circumvention",
+    "raw_identifier_persistence",
+    "raw_identifier_queue_transport",
+    "raw_identifier_logging",
+    "raw_identifier_audit_storage"
+  ],
+  "gate_result": {
+    "unauthorized_document_operation": "BLOCK",
+    "unauthorized_signature_operation": "BLOCK",
+    "unauthorized_authentication_operation": "BLOCK",
+    "official_connector_missing": "HOLD",
+    "legal_ambiguity": "ESCALATE"
+  }
+}
