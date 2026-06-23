@@ -1,0 +1,23 @@
+name: cin-digital-trust-router
+version: 1.0.0
+status: sandbox-hardened
+scope: captals-trust-primitive
+capabilities:
+  - ephemeral_session_salt
+  - opaque_proof_reference
+  - audit_token_hashing
+  - blind_logging
+  - tamper_evident_audit_ledger
+
+gates:
+  PASS: official_assurance_complete
+  HOLD: assurance_incomplete
+  BLOCK: policy_violation
+  ESCALATE: evidence_failure
+
+entrypoints:
+  health: /health
+  demo: /demo/
+  session: /api/session/start
+  evaluate: /api/trust/evaluate
+  verify_ledger: /api/ledger/verify
