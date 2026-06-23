@@ -1,7 +1,7 @@
 {
-  "policy": "cin-digital-trust-router.allowed.v1",
+  "policy": "cin-digital-trust-router.allowed.v2",
   "allowed_operations": [
-    "validate_cpf_format_in_memory",
+    "validate_opaque_proof_reference",
     "create_ephemeral_session_salt",
     "consume_session_salt_once",
     "generate_audit_token_hash",
@@ -25,9 +25,9 @@
     "event_hash"
   ],
   "privacy_invariants": [
-    "no_raw_cpf_in_storage",
-    "no_raw_cpf_in_logs",
-    "no_raw_cpf_in_audit_events",
+    "no_raw_personal_identifier_in_storage",
+    "no_raw_personal_identifier_in_logs",
+    "no_raw_personal_identifier_in_audit_events",
     "session_salt_ttl_required",
     "session_salt_one_time_use_required"
   ]
