@@ -261,8 +261,8 @@ where
     }
 }
 
-/// Spawns a task that groups already-sampled events. The transition path never awaits this task.
-pub fn spawn_batch_worker<S>(
+/// Groups events that already passed the sampling decision. The transition path never awaits it.
+fn spawn_batch_worker<S>(
     mut receiver: UnboundedReceiver<TransitionEvent<S>>,
     batch_config: BatchConfig,
 ) -> JoinHandle<()>
