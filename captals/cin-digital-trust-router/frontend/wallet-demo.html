@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
+  <title>Captals Trust Router Demo</title>
+  <link rel="stylesheet" href="/demo/wallet-demo.css" />
+</head>
+<body>
+  <main>
+    <h1>Captals Trust Router</h1>
+    <p class="warn">Sandbox: a resposta permanece em HOLD até existir conector institucional e assurance verificável.</p>
+    <section>
+      <h2>1. Sessão efêmera</h2>
+      <button id="sessionButton" type="button">Criar sessão</button>
+      <pre id="sessionOut" aria-live="polite">sem sessão</pre>
+    </section>
+    <section>
+      <h2>2. Avaliar prova opaca</h2>
+      <label for="sessionId">Session ID</label>
+      <input id="sessionId" placeholder="crie uma sessão antes" autocomplete="off" />
+      <label for="proofReference">Referência de prova</label>
+      <input id="proofReference" placeholder="sandbox:proof:reference" autocomplete="off" />
+      <label for="issuerState">UF emissora</label>
+      <input id="issuerState" value="SP" maxlength="2" autocomplete="off" />
+      <button id="evaluateButton" type="button">Avaliar</button>
+      <pre id="evaluateOut" aria-live="polite">sem avaliação</pre>
+    </section>
+  </main>
+  <script src="/demo/wallet-demo.js" defer></script>
+</body>
+</html>
