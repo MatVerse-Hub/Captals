@@ -59,6 +59,13 @@ class BudgetLimit(BaseModel):
     max_value: float = Field(ge=0)
     unit: str = Field(min_length=1)
 
+    @field_validator("max_value")
+    @classmethod
+    def finite_limit(cls, value: float) -> float:
+        if not isfinite(value):
+            raise ValueError("budget limit must be finite")
+        return value
+
 
 class MetabolicEvent(BaseModel):
     event_id: str = Field(min_length=1)
@@ -139,12 +146,14 @@ class LegacyOmegaNormalization(BaseModel):
     trust_implication: Literal["NONE"] = "NONE"
     authorization_implication: Literal["NONE"] = "NONE"
     canonical_use: Literal["CAPTALS_MARKET_CONTEXT"] = "CAPTALS_MARKET_CONTEXT"
-    requires_for_allocation: List[str] = [
-        "explicit_gate_decision",
-        "verified_evidence",
-        "replay_status",
-        "instrumented_capital_delta",
-    ]
+    requires_for_allocation: List[str] = Field(
+        default_factory=lambda: [
+            "explicit_gate_decision",
+            "verified_evidence",
+            "replay_status",
+            "instrumented_capital_delta",
+        ]
+    )
 
 
 def _capital_state(event: MetabolicEvent):
@@ -200,13 +209,16 @@ def evaluate_metabolism(event: MetabolicEvent) -> MetabolicEvaluation:
         reasons.append("resource_budget_exceeded")
     elif state == "DEGRADING":
         allocation_status = "INELIGIBLE"
-        reasons.append("capital_degradation_without_compensating_dimension")
+        reasons.append("capital_degradation_without_positive_dimension")
+    elif state == "TRADEOFF":
+        allocation_status = "HOLD"
+        reasons.append("cross_dimension_tradeoff_requires_explicit_policy")
     elif state == "NEUTRAL":
         allocation_status = "HOLD"
         reasons.append("no_instrumented_capital_change")
     else:
         allocation_status = "ELIGIBLE"
-        reasons.append("admissible_instrumented_capital_change")
+        reasons.append("admissible_nonnegative_instrumented_capital_change")
 
     legacy_interpretation = None
     if event.legacy_omega_score is not None:
