@@ -1,0 +1,64 @@
+name: Captals Metabolism
+
+on:
+  push:
+    branches:
+      - feat/captals-metabolism-fusion
+    paths:
+      - 'backend/services/captals_metabolism.py'
+      - 'backend/routes/captals.py'
+      - 'backend/test_captals_metabolism.py'
+      - 'backend/main.py'
+      - 'CAPTALS_FUSION.md'
+      - '.github/workflows/captals-metabolism.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'backend/services/captals_metabolism.py'
+      - 'backend/routes/captals.py'
+      - 'backend/test_captals_metabolism.py'
+      - 'backend/main.py'
+      - 'CAPTALS_FUSION.md'
+      - '.github/workflows/captals-metabolism.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  metabolism:
+    name: Captals metabolism contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Syntax check
+        working-directory: backend
+        run: |
+          python -m py_compile services/captals_metabolism.py routes/captals.py main.py test_captals_metabolism.py
+
+      - name: Run Captals metabolism tests
+        working-directory: backend
+        env:
+          REDIS_HOST: localhost
+          REDIS_PORT: '6379'
+          POLYGON_RPC: https://rpc.ankr.com/polygon_amoy
+        run: pytest -q test_captals_metabolism.py
