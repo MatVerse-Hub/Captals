@@ -58,6 +58,7 @@ jobs:
       - name: Run Captals metabolism tests
         working-directory: backend
         env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
           REDIS_HOST: localhost
           REDIS_PORT: '6379'
           POLYGON_RPC: https://rpc.ankr.com/polygon_amoy
