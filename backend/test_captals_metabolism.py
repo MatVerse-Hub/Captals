@@ -1,9 +1,12 @@
-"""Tests for the Captals metabolism fusion layer."""
+"""Tests for the isolated Captals metabolism fusion layer."""
 
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from main import app
+from routes.captals import router as captals_router
 
+app = FastAPI()
+app.include_router(captals_router, prefix="/api/captals")
 client = TestClient(app)
 
 
