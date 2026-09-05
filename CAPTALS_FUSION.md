@@ -111,18 +111,19 @@ Perda em uma dimensão não é compensada automaticamente por ganho em outra.
 
 Ω-Capitals deixa de ser "o Captals inteiro" e passa a ser uma de suas superfícies econômicas.
 
-## 5. Relação com MNB / Mem-bit / M-bit
+## 5. Relação com MNB / mem-bit / m-bit
 
-A integração não redefine essas primitivas, mas permite referências explícitas:
+A integração preserva o cânone atual dessas primitivas e não as redefine:
 
 ```text
-MNB          -> informação contextualizada
-Mem-bit      -> decisão/evidência digital (quando aplicável ao cânone vigente)
-M-bit        -> marco/transformação realizada
-Captals      -> observa o efeito desse marco nos capitais e custos
+MNB      = mem-nano-bit = informacional = substrato
+mem-bit  = digital      = contrato
+m-bit    = físico       = item
 ```
 
-Um `m_bit_ref` pode ser anexado a um evento metabólico sem transformar M-bit em preço.
+Captals pode observar consequências de valor, custo e capacidade associadas a qualquer uma dessas primitivas sem convertê-las automaticamente em preço ou capital financeiro.
+
+O campo `m_bit_ref`, quando presente em um evento metabólico, referencia explicitamente um **m-bit físico/item**; ele não representa uma nota, um score ou um marco abstrato.
 
 ## 6. Regra de instrumentação
 
@@ -210,8 +211,8 @@ A fusão atual fecha o contrato sem destruir o legado. As extensões seguintes d
 
 1. persistência de eventos metabólicos e lineage;
 2. integração com EvidenceOS/receipts reais;
-3. referência verificável a M-bit/marcos;
-4. Trail Registry e alocação por marco;
+3. referências verificáveis a MNB, mem-bit e m-bit sem colapsar seus tipos;
+4. Trail Registry e alocação por eventos/transformações governadas;
 5. adapters para custos reais de CPU, energia, tempo e memória;
 6. ingestão dos resultados Ω-Capitals como contexto de mercado;
 7. integração com Bridge para capital/capacidade externos;
