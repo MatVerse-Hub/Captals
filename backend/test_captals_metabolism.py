@@ -100,7 +100,7 @@ def test_budget_violation_is_ineligible_without_scalar_score():
     assert result["budget_violations"][0]["dimension"] == "computational"
 
 
-def test_mixed_capital_change_is_tradeoff_not_fake_net_score():
+def test_mixed_capital_change_is_tradeoff_and_holds_without_policy():
     payload = _base_payload()
     payload["capital_delta"]["relational"] = {
         "value": -1.0,
@@ -111,7 +111,8 @@ def test_mixed_capital_change_is_tradeoff_not_fake_net_score():
     assert response.status_code == 200
     result = response.json()
     assert result["state"] == "TRADEOFF"
-    assert result["allocation_status"] == "ELIGIBLE"
+    assert result["allocation_status"] == "HOLD"
+    assert "cross_dimension_tradeoff_requires_explicit_policy" in result["reasons"]
     assert "relational" in result["negative_capitals"]
 
 
@@ -137,5 +138,12 @@ def test_legacy_omega_is_context_not_authorization():
 def test_budget_unit_mismatch_is_rejected():
     payload = _base_payload()
     payload["budget_limits"]["computational"]["unit"] = "joule"
+    response = client.post("/api/captals/evaluate", json=payload)
+    assert response.status_code == 422
+
+
+def test_infinite_budget_limit_is_rejected():
+    payload = _base_payload()
+    payload["budget_limits"]["computational"]["max_value"] = "Infinity"
     response = client.post("/api/captals/evaluate", json=payload)
     assert response.status_code == 422
