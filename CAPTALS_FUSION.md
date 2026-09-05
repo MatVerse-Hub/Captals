@@ -60,6 +60,7 @@ Captals não decide verdade científica.
 Ciência não libera recurso sozinha.
 Ω-Score não substitui Gate, Evidence ou Replay.
 Preço é uma expressão econômica possível, não a ontologia do valor.
+Perda em uma dimensão não é compensada automaticamente por ganho em outra.
 ```
 
 ## 4. Fusão arquitetural
@@ -156,9 +157,10 @@ HOLD externo                          -> HOLD
 evidência não verificada              -> HOLD
 replay não exato                      -> HOLD
 orçamento dimensional excedido        -> INELIGIBLE
-degradação sem ganho compensatório    -> INELIGIBLE
+degradação sem dimensão positiva      -> INELIGIBLE
+tradeoff entre dimensões              -> HOLD até política explícita
 mudança nula                          -> HOLD
-mudança admissível e instrumentada    -> ELIGIBLE
+acumulação não-negativa instrumentada -> ELIGIBLE
 ```
 
 `ELIGIBLE` significa elegível para alocação pelo Captals; não significa execução automática.
