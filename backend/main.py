@@ -1,5 +1,5 @@
 """
-Omega Capitals Backend - FastAPI Application
+Captals / Omega Capitals Backend - FastAPI Application
 Main entry point for the API server
 """
 
@@ -14,15 +14,19 @@ from routes.governance import router as governance_router
 from routes.funds import router as funds_router
 from routes.payments import router as payments_router
 from routes.metrics import router as metrics_router
+from routes.captals import router as captals_router
 
 # Load environment variables
 load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Omega Capitals API",
-    description="Backend API for Omega Capitals DeFi Ecosystem",
-    version="1.0.0"
+    title="Captals / Omega Capitals API",
+    description=(
+        "Omega Capitals DeFi surface plus the Captals multidimensional "
+        "value/resource metabolism layer"
+    ),
+    version="1.1.0"
 )
 
 # CORS middleware
@@ -47,19 +51,26 @@ redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=Tr
 app.state.w3 = w3
 app.state.redis = redis_client
 
-# Include routers
+# Legacy Ω-Capitals routers remain intact.
 app.include_router(governance_router, prefix="/api/governance", tags=["Governance"])
 app.include_router(funds_router, prefix="/api/funds", tags=["Funds"])
 app.include_router(payments_router, prefix="/api/payments", tags=["Payments"])
 app.include_router(metrics_router, prefix="/api/metrics", tags=["Metrics"])
 
+# Canonical Captals metabolism layer composes the legacy surface rather than
+# replacing or reinterpreting it.
+app.include_router(captals_router, prefix="/api/captals", tags=["Captals"])
+
 
 @app.get("/")
 async def root():
-    """Root endpoint - API status"""
+    """Root endpoint - API status and lineage."""
     return {
+        # Kept for backward compatibility with the historical API/tests.
         "message": "Omega Capitals API",
-        "version": "1.0.0",
+        "canonical_name": "Captals",
+        "legacy_surface": "Omega Capitals (Ω-Capitals)",
+        "version": "1.1.0",
         "status": "operational",
         "blockchain": {
             "connected": w3.is_connected(),
@@ -95,7 +106,7 @@ async def health_check():
 @app.on_event("startup")
 async def startup_event():
     """Run on application startup"""
-    print("🚀 Omega Capitals API starting up...")
+    print("🚀 Captals / Omega Capitals API starting up...")
     print(f"📡 Blockchain: {'Connected' if w3.is_connected() else 'Disconnected'}")
     print(f"💾 Redis: {'Connected' if redis_client.ping() else 'Disconnected'}")
 
@@ -103,7 +114,7 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Run on application shutdown"""
-    print("👋 Omega Capitals API shutting down...")
+    print("👋 Captals / Omega Capitals API shutting down...")
     redis_client.close()
 
 
