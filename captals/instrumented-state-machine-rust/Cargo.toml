@@ -1,0 +1,11 @@
+[package]
+name = "captals-instrumented-state-machine"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "High-frequency generic state machine with sampled tracing and asynchronous log batching."
+license = "MIT"
+
+[dependencies]
+tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros", "sync", "time"] }
+tracing = "0.1.44"
