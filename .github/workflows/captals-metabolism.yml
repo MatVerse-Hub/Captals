@@ -8,6 +8,7 @@ on:
       - 'backend/services/captals_metabolism.py'
       - 'backend/routes/captals.py'
       - 'backend/test_captals_metabolism.py'
+      - 'backend/test_bridge_physiology_contract.py'
       - 'backend/main.py'
       - 'CAPTALS_FUSION.md'
       - '.github/workflows/captals-metabolism.yml'
@@ -18,6 +19,7 @@ on:
       - 'backend/services/captals_metabolism.py'
       - 'backend/routes/captals.py'
       - 'backend/test_captals_metabolism.py'
+      - 'backend/test_bridge_physiology_contract.py'
       - 'backend/main.py'
       - 'CAPTALS_FUSION.md'
       - '.github/workflows/captals-metabolism.yml'
@@ -54,10 +56,10 @@ jobs:
       - name: Syntax check
         working-directory: backend
         run: |
-          python -m py_compile services/captals_metabolism.py routes/captals.py test_captals_metabolism.py
+          python -m py_compile services/captals_metabolism.py routes/captals.py test_captals_metabolism.py test_bridge_physiology_contract.py
 
       - name: Run Captals metabolism tests
         working-directory: backend
         env:
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
-        run: pytest -q test_captals_metabolism.py
+        run: pytest -q test_captals_metabolism.py test_bridge_physiology_contract.py
