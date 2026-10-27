@@ -95,6 +95,11 @@ class MetabolicEvent(BaseModel):
 
     @model_validator(mode="after")
     def validate_budget_units(self) -> "MetabolicEvent":
+        # Costs represent consumed resources. Recovered capacity belongs to
+        # capital_delta, never a negative measurement that evades a budget.
+        for dimension, observation in self.costs.items():
+            if observation.value < 0:
+                raise ValueError(f"negative resource cost for {dimension.value}")
         for dimension, limit in self.budget_limits.items():
             observation = self.costs.get(dimension)
             if observation is not None and observation.unit != limit.unit:
@@ -113,6 +118,8 @@ class BudgetViolation(BaseModel):
 
 
 class MetabolicEvaluation(BaseModel):
+    # Evaluation output is advisory and never grants operational authority.
+    authorization_implication: Literal["NONE"] = "NONE"
     event_id: str
     state: Literal["ACCUMULATING", "DEGRADING", "TRADEOFF", "NEUTRAL"]
     allocation_status: Literal["ELIGIBLE", "HOLD", "INELIGIBLE"]
